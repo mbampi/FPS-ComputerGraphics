@@ -196,6 +196,9 @@ GLint bbox_max_uniform;
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
 
+glm::vec4 camera_position_c = glm::vec4(0.0f, 0.0f, -2.0f, 1.0f);
+bool g_go_front, g_go_back, g_go_left, g_go_right = false;
+
 int main(int argc, char* argv[])
 {
     // Inicializamos a biblioteca GLFW, utilizada para criar uma janela do
@@ -341,10 +344,20 @@ int main(int argc, char* argv[])
 
         // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
         // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::vec4 camera_position_c  = glm::vec4(x,y,z,1.0f); // Ponto "c", centro da câmera
-        glm::vec4 camera_lookat_l    = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-        glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
+        // glm::vec4 camera_position_c = glm::vec4(x, y, z, 1.0f); // Ponto "c", centro da câmera
+        // glm::vec4 camera_lookat_l    = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+        // glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
+        glm::vec4 camera_view_vector = glm::vec4(x,y,z,0.0f);
         glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
+
+        glm::vec4 w = -camera_view_vector/norm(camera_view_vector);
+        glm::vec4 u = crossproduct(camera_up_vector, w)/norm(crossproduct(camera_up_vector, w));
+
+        float speed = 0.1;
+        if (g_go_front) camera_position_c -= speed * w;
+        if (g_go_back)  camera_position_c += speed * w;
+        if (g_go_left)  camera_position_c -= speed * u;
+        if (g_go_right) camera_position_c += speed * u;
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
@@ -1054,7 +1067,7 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
     // parâmetros que definem a posição da câmera dentro da cena virtual.
     // Assim, temos que o usuário consegue controlar a câmera.
 
-    if (g_LeftMouseButtonPressed)
+    if (g_RightMouseButtonPressed)
     {
         // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
         float dx = xpos - g_LastCursorPosX;
@@ -1080,7 +1093,7 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
         g_LastCursorPosY = ypos;
     }
 
-    if (g_RightMouseButtonPressed)
+    if (g_LeftMouseButtonPressed)
     {
         // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
         float dx = xpos - g_LastCursorPosX;
@@ -1207,6 +1220,16 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
         fprintf(stdout,"Shaders recarregados!\n");
         fflush(stdout);
     }
+
+    if (key == GLFW_KEY_W && action == GLFW_PRESS) g_go_front = true;
+    if (key == GLFW_KEY_S && action == GLFW_PRESS) g_go_back = true;
+    if (key == GLFW_KEY_A && action == GLFW_PRESS) g_go_left = true;
+    if (key == GLFW_KEY_D && action == GLFW_PRESS) g_go_right = true;
+
+    if (key == GLFW_KEY_W && action == GLFW_RELEASE) g_go_front = false;
+    if (key == GLFW_KEY_S && action == GLFW_RELEASE) g_go_back = false;
+    if (key == GLFW_KEY_A && action == GLFW_RELEASE) g_go_left = false;
+    if (key == GLFW_KEY_D && action == GLFW_RELEASE) g_go_right = false;
 }
 
 // Definimos o callback para impressão de erros da GLFW no terminal
