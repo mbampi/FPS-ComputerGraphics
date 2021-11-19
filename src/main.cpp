@@ -185,6 +185,12 @@ glm::vec4 g_camera_view_vector;
 #define BUNNY 1
 #define PLANE 2
 #define FOX 3
+#define HOUSE 4
+
+// Player
+glm::vec4 g_camera_position_c = glm::vec4(0.0f, 0.0f, -2.0f, 1.0f);
+bool g_go_front, g_go_back, g_go_left, g_go_right;
+const float PLAYER_SPEED = 0.12;
 
 // Tiro
 struct TBullet {
@@ -198,8 +204,8 @@ struct TBullet {
     float shot_time;  // hora em que o tiro foi dado para conseguirmos remover o tiro depois de um tempo
 };
 std::vector<struct TBullet> g_bullets; // Tiros em andamento
-const float BULLET_SIZE = 0.02f;
-const float BULLET_SPEED = 0.05f;
+const float BULLET_SIZE = 0.03f;
+const float BULLET_SPEED = 0.02f;
 const float MAX_BULLET_DISTANCE = 0.1f;
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
@@ -215,9 +221,6 @@ GLint bbox_max_uniform;
 
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
-
-glm::vec4 g_camera_position_c = glm::vec4(0.0f, 0.0f, -2.0f, 1.0f);
-bool g_go_front, g_go_back, g_go_left, g_go_right = false;
 
 int main(int argc, char* argv[])
 {
@@ -295,6 +298,10 @@ int main(int argc, char* argv[])
     // Carregamos duas imagens para serem utilizadas como textura
     LoadTextureImage("../../data/tc-earth_daymap_surface.jpg");      // TextureImage0
     LoadTextureImage("../../data/tc-earth_nightmap_citylights.gif"); // TextureImage1
+    LoadTextureImage("../../data/fox-texture.png"); // TextureImage2
+    LoadTextureImage("../../data/grass-texture.jpg"); // TextureImage3
+    LoadTextureImage("../../data/house-texture.jpg"); // TextureImage4
+
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
     ObjModel gunmodel("../../data/gun.obj");
@@ -312,6 +319,10 @@ int main(int argc, char* argv[])
     ObjModel foxmodel("../../data/fox.obj");
     ComputeNormals(&foxmodel);
     BuildTrianglesAndAddToVirtualScene(&foxmodel);
+
+    ObjModel housemodel("../../data/house.obj");
+    ComputeNormals(&housemodel);
+    BuildTrianglesAndAddToVirtualScene(&housemodel);
 
     if ( argc > 1 )
     {
@@ -377,11 +388,10 @@ int main(int argc, char* argv[])
         glm::vec4 w = -g_camera_view_vector/norm(g_camera_view_vector);
         glm::vec4 u = crossproduct(camera_up_vector, w)/norm(crossproduct(camera_up_vector, w));
 
-        float speed = 0.12;
-        if (g_go_front) g_camera_position_c -= speed * w;
-        if (g_go_back)  g_camera_position_c += speed * w;
-        if (g_go_left)  g_camera_position_c -= speed * u;
-        if (g_go_right) g_camera_position_c += speed * u;
+        if (g_go_front) g_camera_position_c -= PLAYER_SPEED * w;
+        if (g_go_back)  g_camera_position_c += PLAYER_SPEED * w;
+        if (g_go_left)  g_camera_position_c -= PLAYER_SPEED * u;
+        if (g_go_right) g_camera_position_c += PLAYER_SPEED * u;
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
@@ -460,16 +470,25 @@ int main(int argc, char* argv[])
         DrawVirtualObject("bunny");
 
         // Desenhamos o modelo da raposa
-        model = Matrix_Translate((float)glfwGetTime() * -0.4f,-1.0f,0.0f) * Matrix_Scale(0.02f, 0.02f, 0.02f);
+        model = Matrix_Translate((float)glfwGetTime() * -0.4f,-1.0f,0.0f) 
+                * Matrix_Scale(0.02f, 0.02f, 0.02f);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, FOX);
         DrawVirtualObject("fox");
 
         // Desenhamos o plano do chão
-        model = Matrix_Translate(0.0f,-1.1f,0.0f) * Matrix_Scale(50.0f, 1.0f, 50.0f);
+        model = Matrix_Translate(0.0f,-1.1f,0.0f) 
+                * Matrix_Scale(50.0f, 1.0f, 50.0f);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, PLANE);
         DrawVirtualObject("plane");
+
+        // Desenhamos a casa
+        model = Matrix_Translate(0.0f,-1.1f,0.0f) 
+                * Matrix_Scale(0.1f, 0.1f, 0.1f);
+        glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+        glUniform1i(object_id_uniform, HOUSE);
+        DrawVirtualObject("house");
 
         // Pegamos um vértice com coordenadas de modelo (0.5, 0.5, 0.5, 1) e o
         // passamos por todos os sistemas de coordenadas armazenados nas
@@ -644,6 +663,8 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(program_id, "TextureImage0"), 0);
     glUniform1i(glGetUniformLocation(program_id, "TextureImage1"), 1);
     glUniform1i(glGetUniformLocation(program_id, "TextureImage2"), 2);
+    glUniform1i(glGetUniformLocation(program_id, "TextureImage3"), 3);
+    glUniform1i(glGetUniformLocation(program_id, "TextureImage4"), 4);
     glUseProgram(0);
 }
 
