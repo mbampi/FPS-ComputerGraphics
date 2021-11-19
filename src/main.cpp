@@ -190,6 +190,7 @@ glm::vec4 g_camera_view_vector;
 // Player
 glm::vec4 g_camera_position_c = glm::vec4(0.0f, 0.0f, -2.0f, 1.0f);
 bool g_go_front, g_go_back, g_go_left, g_go_right;
+bool g_rotate_right, g_rotate_left;
 const float PLAYER_SPEED = 0.12;
 
 // Tiro
@@ -392,6 +393,9 @@ int main(int argc, char* argv[])
         if (g_go_back)  g_camera_position_c += PLAYER_SPEED * w;
         if (g_go_left)  g_camera_position_c -= PLAYER_SPEED * u;
         if (g_go_right) g_camera_position_c += PLAYER_SPEED * u;
+
+        if (g_rotate_right) g_CameraTheta -= PLAYER_SPEED * 0.6f;
+        if (g_rotate_left)  g_CameraTheta += PLAYER_SPEED * 0.6f;
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
@@ -1253,6 +1257,13 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
         fprintf(stdout,"Shaders recarregados!\n");
         fflush(stdout);
     }
+
+    if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) g_rotate_right = true;
+    if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) g_rotate_left = true;
+
+    if (key == GLFW_KEY_RIGHT && action == GLFW_RELEASE) g_rotate_right = false;
+    if (key == GLFW_KEY_LEFT && action == GLFW_RELEASE) g_rotate_left = false;
+
 
     if (key == GLFW_KEY_W && action == GLFW_PRESS) g_go_front = true;
     if (key == GLFW_KEY_S && action == GLFW_PRESS) g_go_back = true;
