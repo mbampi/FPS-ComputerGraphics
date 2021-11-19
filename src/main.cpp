@@ -5,8 +5,11 @@
 //    INF01047 Fundamentos de Computação Gráfica
 //               Prof. Eduardo Gastal
 //
-//                   LABORATÓRIO 5
+//                 TRABALHO FINAL
 //
+//      Matheus D. Bampi e Henrique Z. Vazatta
+//  
+
 
 // Arquivos "headers" padrões de C podem ser incluídos em um
 // programa C++, sendo necessário somente adicionar o caractere
@@ -166,7 +169,8 @@ bool g_MiddleMouseButtonPressed = false; // Análogo para botão do meio do mous
 // renderização.
 float g_CameraTheta = 0.0f; // Ângulo no plano ZX em relação ao eixo Z
 float g_CameraPhi = 0.0f;   // Ângulo em relação ao eixo Y
-float g_CameraDistance = 0.11f; // Distância da câmera para a origem
+const float INITIAL_CAMERA_DISTANCE = 0.11f;
+float g_CameraDistance = INITIAL_CAMERA_DISTANCE; // Distância da câmera para a origem
 
 
 // Variável que controla o tipo de projeção utilizada: perspectiva ou ortográfica.
@@ -174,6 +178,26 @@ bool g_UsePerspectiveProjection = true;
 
 // Variável que controla se o texto informativo será mostrado na tela.
 bool g_ShowInfoText = true;
+
+glm::vec4 g_camera_view_vector;
+
+#define GUN 0
+#define BUNNY 1
+#define PLANE 2
+#define FOX 3
+
+// Tiro
+struct TBullet {
+    int id;                 // id do tiro
+    int model_id;
+    std::string model_name; // nome do modelo a ser desenhado
+    glm::vec4 position;
+    glm::vec3 rotation;
+    glm::vec3 scale;
+    glm::vec4 direction;    // direção da tiro
+    float shot_time;        // hora em que o tiro foi dado. Para conseguirmos remover a bala depois de um tempo
+};
+std::vector<struct TBullet> g_bullets; // Tiros em andamento
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 GLuint vertex_shader_id;
@@ -221,7 +245,7 @@ int main(int argc, char* argv[])
     // Criamos uma janela do sistema operacional, com 800 colunas e 600 linhas
     // de pixels, e com título "INF01047 ...".
     GLFWwindow* window;
-    window = glfwCreateWindow(800, 600, "INF01047 - 00288556 - Matheus Dussin Bampi", NULL, NULL);
+    window = glfwCreateWindow(800, 600, "INF01047 - Trabalho Final FCG", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -343,11 +367,11 @@ int main(int argc, char* argv[])
         // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
         // glm::vec4 g_camera_position_c = glm::vec4(x, y, z, 1.0f); // Ponto "c", centro da câmera
         // glm::vec4 camera_lookat_l    = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-        // glm::vec4 camera_view_vector = camera_lookat_l - g_camera_position_c; // Vetor "view", sentido para onde a câmera está virada
-        glm::vec4 camera_view_vector = glm::vec4(x,y,z,0.0f);
+        // glm::vec4 g_camera_view_vector = camera_lookat_l - g_camera_position_c; // Vetor "view", sentido para onde a câmera está virada
+        g_camera_view_vector = glm::vec4(x,y,z,0.0f);
         glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
-        glm::vec4 w = -camera_view_vector/norm(camera_view_vector);
+        glm::vec4 w = -g_camera_view_vector/norm(g_camera_view_vector);
         glm::vec4 u = crossproduct(camera_up_vector, w)/norm(crossproduct(camera_up_vector, w));
 
         float speed = 0.12;
@@ -358,7 +382,7 @@ int main(int argc, char* argv[])
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::mat4 view = Matrix_Camera_View(g_camera_position_c, camera_view_vector, camera_up_vector);
+        glm::mat4 view = Matrix_Camera_View(g_camera_position_c, g_camera_view_vector, camera_up_vector);
 
         // Agora computamos a matriz de Projeção.
         glm::mat4 projection;
@@ -397,23 +421,34 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
         glUniformMatrix4fv(projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
-        #define GUN 0
-        #define BUNNY 1
-        #define PLANE 2
-        #define FOX 3
-
         // Desenhamos o modelo da arma
-        float _x = g_camera_position_c.x + camera_view_vector.x;
-        float _y = g_camera_position_c.y + camera_view_vector.y;
-        float _z = g_camera_position_c.z + camera_view_vector.z;
-        model = Matrix_Translate(_x, _y, _z) 
-                * Matrix_Scale(0.01f, 0.01f, 0.01f);
-                // * Matrix_Rotate_X()
-                // * Matrix_Rotate_Y()
-                // * Matrix_Rotate_Z();
-        glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-        glUniform1i(object_id_uniform, GUN);
-        DrawVirtualObject("gun");
+        // float _x = g_camera_position_c.x + g_camera_view_vector.x;    
+        // float _y = g_camera_position_c.y + g_camera_view_vector.y;
+        // float _z = g_camera_position_c.z + g_camera_view_vector.z;
+        // model = Matrix_Translate(_x, _y, _z) * Matrix_Scale(0.01f, 0.01f, 0.01f);
+        // glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+        // glUniform1i(object_id_uniform, GUN);
+        // DrawVirtualObject("gun");
+
+        // desenhamos os tiros
+        for (auto bullet = g_bullets.begin(); bullet != g_bullets.end(); bullet++) {
+            bullet->position += (float)glfwGetTime() * bullet->direction;
+            model = Matrix_Translate(bullet->position.x, bullet->position.y, bullet->position.z)
+                    * Matrix_Scale(bullet->scale.x, bullet->scale.y, bullet->scale.z)
+                    * Matrix_Rotate_Z(bullet->rotation.z)
+                    * Matrix_Rotate_Y(bullet->rotation.y)
+                    * Matrix_Rotate_X(bullet->rotation.x);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, bullet->model_id);
+            DrawVirtualObject(bullet->model_name.c_str());
+
+            float distance = norm(((float)glfwGetTime() - bullet->shot_time) * bullet->direction);
+            
+            // remove bullet after some distance. Not working
+            // if (distance > 0.1f)
+            //     g_bullets.erase(remove);
+        }
+        
 
         // Desenhamos o modelo do coelho
         model = Matrix_Translate((float)glfwGetTime() * 0.1f,0.0f,0.0f);
@@ -1082,7 +1117,7 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
     
         // Atualizamos parâmetros da câmera com os deslocamentos
         g_CameraTheta -= 0.01f*dx;
-        g_CameraPhi   += 0.01f*dy;
+        // g_CameraPhi   += 0.01f*dy;
     
         // Em coordenadas esféricas, o ângulo phi deve ficar entre -pi/2 e +pi/2.
         float phimax = 3.141592f/2;
@@ -1187,9 +1222,14 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     // Se o usuário apertar a tecla espaço, resetamos os ângulos de Euler para zero.
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
     {
-        g_AngleX = 0.0f;
-        g_AngleY = 0.0f;
-        g_AngleZ = 0.0f;
+        float bullet_speed = 0.05f;
+        
+        glm::vec3 rotation = glm::vec3(3.14/2, g_CameraTheta-(3.14/2), 0.0f);
+        glm::vec3 scale = glm::vec3(0.1f,0.1f,0.1f);
+        glm::vec4 direction = bullet_speed*(glm::vec4(g_camera_view_vector.x,0.0f,g_camera_view_vector.z,0.0f)/norm(glm::vec4(g_camera_view_vector.x,0.0f,g_camera_view_vector.z,0.0f)));
+        float shot_time = (float)glfwGetTime();
+        TBullet new_bullet = { static_cast<int>(g_bullets.size()), GUN, "gun", g_camera_position_c, rotation, scale, direction, shot_time};
+        g_bullets.push_back(new_bullet);
     }
 
     // Se o usuário apertar a tecla P, utilizamos projeção perspectiva.
