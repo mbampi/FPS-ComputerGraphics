@@ -166,7 +166,7 @@ bool g_MiddleMouseButtonPressed = false; // Análogo para botão do meio do mous
 // renderização.
 float g_CameraTheta = 0.0f; // Ângulo no plano ZX em relação ao eixo Z
 float g_CameraPhi = 0.0f;   // Ângulo em relação ao eixo Y
-float g_CameraDistance = 3.5f; // Distância da câmera para a origem
+float g_CameraDistance = 0.11f; // Distância da câmera para a origem
 
 
 // Variável que controla o tipo de projeção utilizada: perspectiva ou ortográfica.
@@ -282,6 +282,10 @@ int main(int argc, char* argv[])
     ComputeNormals(&planemodel);
     BuildTrianglesAndAddToVirtualScene(&planemodel);
 
+    ObjModel foxmodel("../../data/fox.obj");
+    ComputeNormals(&foxmodel);
+    BuildTrianglesAndAddToVirtualScene(&foxmodel);
+
     if ( argc > 1 )
     {
         ObjModel model(argv[1]);
@@ -346,7 +350,7 @@ int main(int argc, char* argv[])
         glm::vec4 w = -camera_view_vector/norm(camera_view_vector);
         glm::vec4 u = crossproduct(camera_up_vector, w)/norm(crossproduct(camera_up_vector, w));
 
-        float speed = 0.09;
+        float speed = 0.12;
         if (g_go_front) g_camera_position_c -= speed * w;
         if (g_go_back)  g_camera_position_c += speed * w;
         if (g_go_left)  g_camera_position_c -= speed * u;
@@ -396,12 +400,17 @@ int main(int argc, char* argv[])
         #define GUN 0
         #define BUNNY 1
         #define PLANE 2
+        #define FOX 3
 
         // Desenhamos o modelo da arma
         float _x = g_camera_position_c.x + camera_view_vector.x;
         float _y = g_camera_position_c.y + camera_view_vector.y;
         float _z = g_camera_position_c.z + camera_view_vector.z;
-        model = Matrix_Translate(_x, _y, _z);
+        model = Matrix_Translate(_x, _y, _z) 
+                * Matrix_Scale(0.01f, 0.01f, 0.01f);
+                // * Matrix_Rotate_X()
+                // * Matrix_Rotate_Y()
+                // * Matrix_Rotate_Z();
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, GUN);
         DrawVirtualObject("gun");
@@ -411,6 +420,12 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, BUNNY);
         DrawVirtualObject("bunny");
+
+        // Desenhamos o modelo da raposa
+        model = Matrix_Translate((float)glfwGetTime() * -0.1f,-1.0f,0.0f) * Matrix_Scale(0.02f, 0.02f, 0.02f);
+        glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+        glUniform1i(object_id_uniform, FOX);
+        DrawVirtualObject("fox");
 
         // Desenhamos o plano do chão
         model = Matrix_Translate(0.0f,-1.1f,0.0f) * Matrix_Scale(50.0f, 1.0f, 50.0f);
@@ -1113,6 +1128,8 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 // Função callback chamada sempre que o usuário movimenta a "rodinha" do mouse.
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
+    // essa função move a arma para frente e para traz. Devemos nos basear nela para o tiro.
+    return;
     // Atualizamos a distância da câmera para a origem utilizando a
     // movimentação da "rodinha", simulando um ZOOM.
     g_CameraDistance -= 0.1f*yoffset;
