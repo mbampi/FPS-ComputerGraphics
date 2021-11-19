@@ -188,16 +188,19 @@ glm::vec4 g_camera_view_vector;
 
 // Tiro
 struct TBullet {
-    int id;                 // id do tiro
+    int id;
     int model_id;
     std::string model_name; // nome do modelo a ser desenhado
     glm::vec4 position;
     glm::vec3 rotation;
     glm::vec3 scale;
-    glm::vec4 direction;    // direção da tiro
-    float shot_time;        // hora em que o tiro foi dado. Para conseguirmos remover a bala depois de um tempo
+    glm::vec4 direction;  // direção da tiro
+    float shot_time;  // hora em que o tiro foi dado para conseguirmos remover o tiro depois de um tempo
 };
 std::vector<struct TBullet> g_bullets; // Tiros em andamento
+const float BULLET_SIZE = 0.02f;
+const float BULLET_SPEED = 0.05f;
+const float MAX_BULLET_DISTANCE = 0.1f;
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 GLuint vertex_shader_id;
@@ -445,19 +448,19 @@ int main(int argc, char* argv[])
             float distance = norm(((float)glfwGetTime() - bullet->shot_time) * bullet->direction);
             
             // remove bullet after some distance. Not working
-            // if (distance > 0.1f)
+            // if (distance > MAX_BULLET_DISTANCE)
             //     g_bullets.erase(remove);
         }
         
 
         // Desenhamos o modelo do coelho
-        model = Matrix_Translate((float)glfwGetTime() * 0.1f,0.0f,0.0f);
+        model = Matrix_Translate((float)glfwGetTime() * 0.04f,0.1f,0.0f);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, BUNNY);
         DrawVirtualObject("bunny");
 
         // Desenhamos o modelo da raposa
-        model = Matrix_Translate((float)glfwGetTime() * -0.1f,-1.0f,0.0f) * Matrix_Scale(0.02f, 0.02f, 0.02f);
+        model = Matrix_Translate((float)glfwGetTime() * -0.4f,-1.0f,0.0f) * Matrix_Scale(0.02f, 0.02f, 0.02f);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, FOX);
         DrawVirtualObject("fox");
@@ -1103,61 +1106,35 @@ void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 // cima da janela OpenGL.
 void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 {
-    // Abaixo executamos o seguinte: caso o botão esquerdo do mouse esteja
-    // pressionado, computamos quanto que o mouse se movimento desde o último
+    // Abaixo executamos o seguinte:
+    // computamos quanto que o mouse se movimento desde o último
     // instante de tempo, e usamos esta movimentação para atualizar os
     // parâmetros que definem a posição da câmera dentro da cena virtual.
     // Assim, temos que o usuário consegue controlar a câmera.
 
-    if (g_LeftMouseButtonPressed)
-    {
-        // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
-        float dx = xpos - g_LastCursorPosX;
-        float dy = ypos - g_LastCursorPosY;
-    
-        // Atualizamos parâmetros da câmera com os deslocamentos
-        g_CameraTheta -= 0.01f*dx;
-        // g_CameraPhi   += 0.01f*dy;
-    
-        // Em coordenadas esféricas, o ângulo phi deve ficar entre -pi/2 e +pi/2.
-        float phimax = 3.141592f/2;
-        float phimin = -phimax;
-    
-        if (g_CameraPhi > phimax)
-            g_CameraPhi = phimax;
-    
-        if (g_CameraPhi < phimin)
-            g_CameraPhi = phimin;
-    
-        // Atualizamos as variáveis globais para armazenar a posição atual do
-        // cursor como sendo a última posição conhecida do cursor.
-        g_LastCursorPosX = xpos;
-        g_LastCursorPosY = ypos;
-    }
+    // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
+    float dx = xpos - g_LastCursorPosX;
 
-    if (g_RightMouseButtonPressed)
-    {
-        // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
-        float dx = xpos - g_LastCursorPosX;
-        float dy = ypos - g_LastCursorPosY;
-    
-        // Atualizamos as variáveis globais para armazenar a posição atual do
-        // cursor como sendo a última posição conhecida do cursor.
-        g_LastCursorPosX = xpos;
-        g_LastCursorPosY = ypos;
-    }
+    // Atualizamos parâmetros da câmera com os deslocamentos
+    g_CameraTheta -= 0.01f*dx;
 
-    if (g_MiddleMouseButtonPressed)
-    {
-        // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
-        float dx = xpos - g_LastCursorPosX;
-        float dy = ypos - g_LastCursorPosY;
-    
-        // Atualizamos as variáveis globais para armazenar a posição atual do
-        // cursor como sendo a última posição conhecida do cursor.
-        g_LastCursorPosX = xpos;
-        g_LastCursorPosY = ypos;
-    }
+    // Deixamos comentado para impedir a movimentação no eixo y.
+    // isso faz com que fique mais facil jogar e que o player não voe ao se movimentar.
+    // g_CameraPhi   += 0.01f*dy; 
+
+    // Em coordenadas esféricas, o ângulo phi deve ficar entre -pi/2 e +pi/2.
+    float phimax = 3.141592f/2;
+    if (g_CameraPhi > phimax)
+        g_CameraPhi = phimax;
+
+    float phimin = -phimax;
+    if (g_CameraPhi < phimin)
+        g_CameraPhi = phimin;
+
+    // Atualizamos as variáveis globais para armazenar a posição atual do
+    // cursor como sendo a última posição conhecida do cursor.
+    g_LastCursorPosX = xpos;
+    g_LastCursorPosY = ypos;
 }
 
 // Função callback chamada sempre que o usuário movimenta a "rodinha" do mouse.
@@ -1222,11 +1199,9 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     // Se o usuário apertar a tecla espaço, resetamos os ângulos de Euler para zero.
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
     {
-        float bullet_speed = 0.05f;
-        
         glm::vec3 rotation = glm::vec3(3.14/2, g_CameraTheta-(3.14/2), 0.0f);
-        glm::vec3 scale = glm::vec3(0.1f,0.1f,0.1f);
-        glm::vec4 direction = bullet_speed*(glm::vec4(g_camera_view_vector.x,0.0f,g_camera_view_vector.z,0.0f)/norm(glm::vec4(g_camera_view_vector.x,0.0f,g_camera_view_vector.z,0.0f)));
+        glm::vec3 scale = glm::vec3(BULLET_SIZE, BULLET_SIZE, BULLET_SIZE);
+        glm::vec4 direction = BULLET_SPEED*(glm::vec4(g_camera_view_vector.x,0.0f,g_camera_view_vector.z,0.0f)/norm(glm::vec4(g_camera_view_vector.x,0.0f,g_camera_view_vector.z,0.0f)));
         float shot_time = (float)glfwGetTime();
         TBullet new_bullet = { static_cast<int>(g_bullets.size()), GUN, "gun", g_camera_position_c, rotation, scale, direction, shot_time};
         g_bullets.push_back(new_bullet);
