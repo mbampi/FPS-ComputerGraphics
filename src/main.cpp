@@ -209,6 +209,28 @@ const float BULLET_SIZE = 0.03f;
 const float BULLET_SPEED = 0.02f;
 const float MAX_BULLET_DISTANCE = 0.1f;
 
+// Enemy
+struct TEnemy {
+    int id;
+    int model_id;
+    std::string model_name; // nome do modelo a ser desenhado
+    glm::vec4 position;
+    glm::vec3 rotation;
+    glm::vec3 scale;
+    glm::vec4 direction;    // direção da movimentação
+
+    TEnemy() {
+        id = 0;
+        model_id = FOX;
+        model_name = "fox";
+        position = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+        rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+        scale = glm::vec3(0.02f, 0.02f, 0.02f);
+        direction = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+    };
+};
+TEnemy *g_enemy = new TEnemy(); 
+
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 GLuint vertex_shader_id;
 GLuint fragment_shader_id;
@@ -222,6 +244,24 @@ GLint bbox_max_uniform;
 
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
+
+bool bulletCollidedEnemy(glm::vec4 bullet, TEnemy enemy){
+    SceneObject enemy_obj = g_VirtualScene[enemy.model_name];
+    bool collided = false;
+
+    if (( enemy.rotation.y >=    3.14/4 && enemy.rotation.y <=  3*3.14/4)
+     || ( enemy.rotation.y >= 3*-3.14/4 && enemy.rotation.y <=   -3.14/4)) {
+        collided = (bullet.x > (enemy_obj.bbox_min.z*enemy.scale.x) + enemy.position.x && bullet.x < (enemy_obj.bbox_max.z*enemy.scale.x) + enemy.position.x)
+            && (bullet.y > (enemy_obj.bbox_min.y*enemy.scale.y) + enemy.position.y && bullet.y < (enemy_obj.bbox_max.y*enemy.scale.y) + enemy.position.y)
+            && (bullet.z > (enemy_obj.bbox_min.x*enemy.scale.z) + enemy.position.z && bullet.z < (enemy_obj.bbox_max.x*enemy.scale.z) + enemy.position.z);
+    } else {
+        collided = (bullet.x > (enemy_obj.bbox_min.x*enemy.scale.x) + enemy.position.x && bullet.x < (enemy_obj.bbox_max.x*enemy.scale.x) + enemy.position.x)
+            && (bullet.y > (enemy_obj.bbox_min.y*enemy.scale.y) + enemy.position.y && bullet.y < (enemy_obj.bbox_max.y*enemy.scale.y) + enemy.position.y)
+            && (bullet.z > (enemy_obj.bbox_min.z*enemy.scale.z) + enemy.position.z && bullet.z < (enemy_obj.bbox_max.z*enemy.scale.z) + enemy.position.z);
+    }
+    return collided;
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -384,7 +424,7 @@ int main(int argc, char* argv[])
         // glm::vec4 camera_lookat_l    = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
         // glm::vec4 g_camera_view_vector = camera_lookat_l - g_camera_position_c; // Vetor "view", sentido para onde a câmera está virada
         
-        glm::vec4 walk_vector = glm::vec4(x,0.0f,z,0.0f);;
+        glm::vec4 walk_vector = glm::vec4(x,0.0f,z,0.0f);
         g_camera_view_vector = glm::vec4(x,y,z,0.0f);
         glm::vec4 camera_up_vector = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
@@ -450,7 +490,8 @@ int main(int argc, char* argv[])
         // DrawVirtualObject("gun");
 
         // desenhamos os tiros
-        for (auto bullet = g_bullets.begin(); bullet != g_bullets.end(); bullet++) {
+        int i = 0;
+        for (auto bullet = g_bullets.begin(); i < g_bullets.size() && bullet != g_bullets.end(); bullet++) {
             bullet->position += (float)glfwGetTime() * bullet->direction;
             model = Matrix_Translate(bullet->position.x, bullet->position.y, bullet->position.z)
                     * Matrix_Scale(bullet->scale.x, bullet->scale.y, bullet->scale.z)
@@ -462,10 +503,15 @@ int main(int argc, char* argv[])
             DrawVirtualObject(bullet->model_name.c_str());
 
             float distance = norm(((float)glfwGetTime() - bullet->shot_time) * bullet->direction);
+
+            bool collided_enemy = bulletCollidedEnemy(bullet->position, *g_enemy);
             
-            // remove bullet after some distance. Not working
-            // if (distance > MAX_BULLET_DISTANCE)
-            //     g_bullets.erase(remove);
+            if (collided_enemy) {
+                g_enemy->scale *= 1.1;
+                g_bullets.erase(bullet);
+            } else if (distance > MAX_BULLET_DISTANCE)
+                g_bullets.erase(bullet);
+            i++;
         }
         
 
@@ -476,8 +522,9 @@ int main(int argc, char* argv[])
         DrawVirtualObject("bunny");
 
         // Desenhamos o modelo da raposa
-        model = Matrix_Translate((float)glfwGetTime() * -0.4f,-1.0f,0.0f) 
-                * Matrix_Scale(0.02f, 0.02f, 0.02f);
+        g_enemy->position.x = (float)glfwGetTime() * -0.4f;
+        model = Matrix_Translate(g_enemy->position.x,-1.0f,0.0f) 
+                * Matrix_Scale(g_enemy->scale.x, g_enemy->scale.y, g_enemy->scale.z);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, FOX);
         DrawVirtualObject("fox");
