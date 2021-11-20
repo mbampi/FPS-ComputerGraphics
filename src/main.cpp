@@ -191,7 +191,7 @@ glm::vec4 g_camera_view_vector;
 glm::vec4 g_camera_position_c = glm::vec4(0.0f, 0.0f, -2.0f, 1.0f);
 bool g_go_front, g_go_back, g_go_left, g_go_right;
 bool g_rotate_right, g_rotate_left;
-const float PLAYER_SPEED = 0.12;
+const float PLAYER_SPEED = 0.15;
 
 // Tiro
 struct TBullet {
@@ -383,10 +383,12 @@ int main(int argc, char* argv[])
         // glm::vec4 g_camera_position_c = glm::vec4(x, y, z, 1.0f); // Ponto "c", centro da câmera
         // glm::vec4 camera_lookat_l    = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
         // glm::vec4 g_camera_view_vector = camera_lookat_l - g_camera_position_c; // Vetor "view", sentido para onde a câmera está virada
+        
+        glm::vec4 walk_vector = glm::vec4(x,0.0f,z,0.0f);;
         g_camera_view_vector = glm::vec4(x,y,z,0.0f);
-        glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
+        glm::vec4 camera_up_vector = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
-        glm::vec4 w = -g_camera_view_vector/norm(g_camera_view_vector);
+        glm::vec4 w = -walk_vector/norm(walk_vector);
         glm::vec4 u = crossproduct(camera_up_vector, w)/norm(crossproduct(camera_up_vector, w));
 
         if (g_go_front) g_camera_position_c -= PLAYER_SPEED * w;
@@ -1139,13 +1141,14 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 
     // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
     float dx = xpos - g_LastCursorPosX;
+    float dy = ypos - g_LastCursorPosY;
 
     // Atualizamos parâmetros da câmera com os deslocamentos
     g_CameraTheta -= 0.01f*dx;
 
     // Deixamos comentado para impedir a movimentação no eixo y.
     // isso faz com que fique mais facil jogar e que o player não voe ao se movimentar.
-    // g_CameraPhi   += 0.01f*dy; 
+    g_CameraPhi   += 0.01f*dy; 
 
     // Em coordenadas esféricas, o ângulo phi deve ficar entre -pi/2 e +pi/2.
     float phimax = 3.141592f/2;
