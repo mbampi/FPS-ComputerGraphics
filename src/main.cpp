@@ -206,7 +206,7 @@ struct TBullet {
 };
 std::vector<struct TBullet> g_bullets; // Tiros em andamento
 const float BULLET_SIZE = 0.03f;
-const float BULLET_SPEED = 0.02f;
+const float BULLET_SPEED = 0.03f;
 const float MAX_BULLET_DISTANCE = 0.1f;
 
 // Enemy
@@ -246,11 +246,11 @@ GLint bbox_max_uniform;
 GLuint g_NumLoadedTextures = 0;
 
 bool bulletCollidedEnemy(glm::vec4 bullet, TEnemy enemy){
+    const float PI = 3.14;
     SceneObject enemy_obj = g_VirtualScene[enemy.model_name];
     bool collided = false;
 
-    if (( enemy.rotation.y >=    3.14/4 && enemy.rotation.y <=  3*3.14/4)
-     || ( enemy.rotation.y >= 3*-3.14/4 && enemy.rotation.y <=   -3.14/4)) {
+    if ((enemy.rotation.y >= PI/4 && enemy.rotation.y <= 3*PI/4) || (enemy.rotation.y >= 3*-PI/4 && enemy.rotation.y <= -PI/4)) {
         collided = (bullet.x > (enemy_obj.bbox_min.z*enemy.scale.x) + enemy.position.x && bullet.x < (enemy_obj.bbox_max.z*enemy.scale.x) + enemy.position.x)
             && (bullet.y > (enemy_obj.bbox_min.y*enemy.scale.y) + enemy.position.y && bullet.y < (enemy_obj.bbox_max.y*enemy.scale.y) + enemy.position.y)
             && (bullet.z > (enemy_obj.bbox_min.x*enemy.scale.z) + enemy.position.z && bullet.z < (enemy_obj.bbox_max.x*enemy.scale.z) + enemy.position.z);
@@ -436,8 +436,8 @@ int main(int argc, char* argv[])
         if (g_go_left)  g_camera_position_c -= PLAYER_SPEED * u;
         if (g_go_right) g_camera_position_c += PLAYER_SPEED * u;
 
-        if (g_rotate_right) g_CameraTheta -= PLAYER_SPEED * 0.6f;
-        if (g_rotate_left)  g_CameraTheta += PLAYER_SPEED * 0.6f;
+        if (g_rotate_right) g_CameraTheta -= PLAYER_SPEED * 0.5f;
+        if (g_rotate_left)  g_CameraTheta += PLAYER_SPEED * 0.5f;
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
@@ -514,7 +514,6 @@ int main(int argc, char* argv[])
             i++;
         }
         
-
         // Desenhamos o modelo do coelho
         model = Matrix_Translate((float)glfwGetTime() * 0.04f,0.1f,0.0f);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
@@ -538,7 +537,7 @@ int main(int argc, char* argv[])
 
         // Desenhamos a casa
         model = Matrix_Translate(0.0f,-1.1f,0.0f) 
-                * Matrix_Scale(0.1f, 0.1f, 0.1f);
+                * Matrix_Scale(0.05f, 0.05f, 0.05f);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, HOUSE);
         DrawVirtualObject("house");
