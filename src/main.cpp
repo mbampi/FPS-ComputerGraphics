@@ -115,6 +115,7 @@ void TextRendering_ShowModelViewProjection(GLFWwindow* window, glm::mat4 project
 void TextRendering_ShowEulerAngles(GLFWwindow* window);
 void TextRendering_ShowProjection(GLFWwindow* window);
 void TextRendering_ShowFramesPerSecond(GLFWwindow* window);
+void TextRendering_ShowScore(GLFWwindow* window);
 
 // Funções callback para comunicação com o sistema operacional e interação do
 // usuário. Veja mais comentários nas definições das mesmas, abaixo.
@@ -188,10 +189,28 @@ glm::vec4 g_camera_view_vector;
 #define HOUSE 4
 
 // Player
+struct TPlayer {
+    int model_id;
+    std::string model_name; // nome do modelo a ser desenhado
+    glm::vec4 position;
+    glm::vec3 rotation;
+    glm::vec3 scale;
+    int score;
+
+    TPlayer() {
+        model_id = BUNNY;
+        model_name = "bunny";
+        position = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+        rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+        scale = glm::vec3(0.5f, 0.5f, 0.5f);
+        score = 0;
+    };
+};
 glm::vec4 g_camera_position_c = glm::vec4(0.0f, 0.0f, -2.0f, 1.0f);
 bool g_go_front, g_go_back, g_go_left, g_go_right;
 bool g_rotate_right, g_rotate_left;
 const float PLAYER_SPEED = 0.15;
+TPlayer *player = new TPlayer();
 
 // Tiro
 struct TBullet {
@@ -225,7 +244,7 @@ struct TEnemy {
         model_name = "fox";
         position = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
         rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-        scale = glm::vec3(0.02f, 0.02f, 0.02f);
+        scale = glm::vec3(0.01f, 0.01f, 0.01f);
         direction = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
     };
 };
@@ -507,6 +526,7 @@ int main(int argc, char* argv[])
             bool collided_enemy = bulletCollidedEnemy(bullet->position, *g_enemy);
             
             if (collided_enemy) {
+                player->score += 1;
                 g_enemy->scale *= 1.1;
                 g_bullets.erase(bullet);
             } else if (distance > MAX_BULLET_DISTANCE)
@@ -559,6 +579,9 @@ int main(int argc, char* argv[])
         // Imprimimos na tela informação sobre o número de quadros renderizados
         // por segundo (frames per second).
         TextRendering_ShowFramesPerSecond(window);
+
+        // imprime a pontuação total
+        TextRendering_ShowScore(window);
 
         // O framebuffer onde OpenGL executa as operações de renderização não
         // é o mesmo que está sendo mostrado para o usuário, caso contrário
@@ -1456,6 +1479,18 @@ void TextRendering_ShowFramesPerSecond(GLFWwindow* window)
     float lineheight = TextRendering_LineHeight(window);
     float charwidth = TextRendering_CharWidth(window);
 
+    TextRendering_PrintString(window, buffer, 1.0f-(numchars + 1)*charwidth, 1.0f-lineheight, 1.0f);
+}
+
+void TextRendering_ShowScore(GLFWwindow* window)
+{
+    static char buffer[20] = "?? points";
+    static int  numchars = 10;
+    
+    numchars = snprintf(buffer, 20, "%d points", player->score);
+    
+    float lineheight = TextRendering_LineHeight(window);
+    float charwidth = TextRendering_CharWidth(window);
     TextRendering_PrintString(window, buffer, 1.0f-(numchars + 1)*charwidth, 1.0f-lineheight, 1.0f);
 }
 
