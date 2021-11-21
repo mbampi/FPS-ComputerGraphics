@@ -183,18 +183,20 @@ void main()
     }
     else if ( object_id == HOUSE )
     {
-        // Coordenadas de textura do plano, obtidas do arquivo OBJ.
         float minx = bbox_min.x;
         float maxx = bbox_max.x;
+
         float miny = bbox_min.y;
         float maxy = bbox_max.y;
+
         float minz = bbox_min.z;
         float maxz = bbox_max.z;
-       
-        U = (position_model.x - minx)/(maxx-minx);
-        V = (position_model.y - miny)/(maxy-miny);
 
-        // Obtemos a refletância difusa a partir da leitura da imagem TextureImage3
+        // Coordenadas de textura do plano, obtidas do arquivo OBJ.
+        U = texcoords.x;
+        V = texcoords.y;
+
+        // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
         vec3 Kd0 = texture(TextureImage4, vec2(U,V)).rgb;
 
         // Equação de Iluminação
