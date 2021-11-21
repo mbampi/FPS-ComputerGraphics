@@ -187,6 +187,7 @@ glm::vec4 g_camera_view_vector;
 #define PLANE 2
 #define FOX 3
 #define HOUSE 4
+#define HOUSE2 5
 
 // Player
 struct TPlayer {
@@ -226,7 +227,7 @@ struct TBullet {
 std::vector<struct TBullet> g_bullets; // Tiros em andamento
 const float BULLET_SIZE = 0.03f;
 const float BULLET_SPEED = 0.03f;
-const float MAX_BULLET_DISTANCE = 0.1f;
+const float MAX_BULLET_DISTANCE = 0.2f;
 
 // Enemy
 struct TEnemy {
@@ -237,18 +238,12 @@ struct TEnemy {
     glm::vec3 rotation;
     glm::vec3 scale;
     glm::vec4 direction;    // direção da movimentação
-
-    TEnemy() {
-        id = 0;
-        model_id = FOX;
-        model_name = "fox";
-        position = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-        rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-        scale = glm::vec3(0.01f, 0.01f, 0.01f);
-        direction = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-    };
+    float spawn_time; // hora em que o spawn foi feito para conseguirmos remover o inimigo depois de um tempo
 };
-TEnemy *g_enemy = new TEnemy(); 
+std::vector<struct TEnemy> g_enemies; // inimigos em andamento
+const float ENEMY_SIZE = 0.02f;
+const float ENEMY_SPEED = 0.002f;
+const float MAX_ENEMY_DISTANCE = 0.2f;
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 GLuint vertex_shader_id;
@@ -263,6 +258,11 @@ GLint bbox_max_uniform;
 
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
+
+int random_int(int min, int max) {
+    int r = min + (rand() % static_cast<int>(max - min + 1));
+    return r;
+}
 
 bool bulletCollidedEnemy(glm::vec4 bullet, TEnemy enemy){
     const float PI = 3.14;
@@ -292,6 +292,8 @@ int main(int argc, char* argv[])
         fprintf(stderr, "ERROR: glfwInit() failed.\n");
         std::exit(EXIT_FAILURE);
     }
+
+    srand(time(0));
 
     // Definimos o callback para impressão de erros da GLFW no terminal
     glfwSetErrorCallback(ErrorCallback);
@@ -360,8 +362,8 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/tc-earth_nightmap_citylights.gif"); // TextureImage1
     LoadTextureImage("../../data/fox-texture.png"); // TextureImage2
     LoadTextureImage("../../data/grass-texture.jpg"); // TextureImage3
-    LoadTextureImage("../../data/house-texture.jpg"); // TextureImage4
-
+    LoadTextureImage("../../data/house-texture.png"); // TextureImage4
+    LoadTextureImage("../../data/house-texture2.jpg"); // TextureImage5
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
     ObjModel gunmodel("../../data/gun.obj");
@@ -383,6 +385,10 @@ int main(int argc, char* argv[])
     ObjModel housemodel("../../data/house.obj");
     ComputeNormals(&housemodel);
     BuildTrianglesAndAddToVirtualScene(&housemodel);
+
+    ObjModel housemodel2("../../data/house2.obj");
+    ComputeNormals(&housemodel2);
+    BuildTrianglesAndAddToVirtualScene(&housemodel2);
 
     if ( argc > 1 )
     {
@@ -523,30 +529,57 @@ int main(int argc, char* argv[])
 
             float distance = norm(((float)glfwGetTime() - bullet->shot_time) * bullet->direction);
 
-            bool collided_enemy = bulletCollidedEnemy(bullet->position, *g_enemy);
+            int j = 0;
+            for (auto enemy = g_enemies.begin(); j < g_enemies.size() && enemy != g_enemies.end(); enemy++) { 
+                bool collided_enemy = bulletCollidedEnemy(bullet->position, g_enemies[j]);
+                
+                if (collided_enemy) {
+                    player->score += 1;
+                    g_bullets.erase(bullet);
+                    g_enemies.erase(enemy);
+                }
+                j++;
+            }
+            if (distance > MAX_BULLET_DISTANCE)
+                g_bullets.erase(bullet);
             
-            if (collided_enemy) {
-                player->score += 1;
-                g_enemy->scale *= 1.1;
-                g_bullets.erase(bullet);
-            } else if (distance > MAX_BULLET_DISTANCE)
-                g_bullets.erase(bullet);
             i++;
         }
+
+        // desenhamos os inimigos
+        i = 0;
+        for (auto enemy = g_enemies.begin(); i < g_enemies.size() && enemy != g_enemies.end(); enemy++) {
+            enemy->position += (float)glfwGetTime() * enemy->direction;
+            model = Matrix_Translate(enemy->position.x, enemy->position.y, enemy->position.z)
+                    * Matrix_Scale(enemy->scale.x, enemy->scale.y, enemy->scale.z)
+                    * Matrix_Rotate_Z(enemy->rotation.z)
+                    * Matrix_Rotate_Y(enemy->rotation.y)
+                    * Matrix_Rotate_X(enemy->rotation.x);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, enemy->model_id);
+            DrawVirtualObject(enemy->model_name.c_str());
+
+            float distance = norm(((float)glfwGetTime() - enemy->spawn_time) * enemy->direction);
+            
+            if (distance > MAX_ENEMY_DISTANCE)
+                g_enemies.erase(enemy);
+            i++;
+        }
+
+        // Desenhamos o modelo da raposa
+        // g_enemy->position.x = (float)glfwGetTime() * -0.4f;
+        // model = Matrix_Translate(g_enemy->position.x,-1.0f,0.0f) 
+        //         * Matrix_Scale(g_enemy->scale.x, g_enemy->scale.y, g_enemy->scale.z);
+        // glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+        // glUniform1i(object_id_uniform, FOX);
+        // DrawVirtualObject("fox");
+
         
         // Desenhamos o modelo do coelho
         model = Matrix_Translate((float)glfwGetTime() * 0.04f,0.1f,0.0f);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, BUNNY);
         DrawVirtualObject("bunny");
-
-        // Desenhamos o modelo da raposa
-        g_enemy->position.x = (float)glfwGetTime() * -0.4f;
-        model = Matrix_Translate(g_enemy->position.x,-1.0f,0.0f) 
-                * Matrix_Scale(g_enemy->scale.x, g_enemy->scale.y, g_enemy->scale.z);
-        glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-        glUniform1i(object_id_uniform, FOX);
-        DrawVirtualObject("fox");
 
         // Desenhamos o plano do chão
         model = Matrix_Translate(0.0f,-1.1f,0.0f) 
@@ -556,11 +589,17 @@ int main(int argc, char* argv[])
         DrawVirtualObject("plane");
 
         // Desenhamos a casa
-        model = Matrix_Translate(0.0f,-1.1f,0.0f) 
-                * Matrix_Scale(0.05f, 0.05f, 0.05f);
+        model = Matrix_Translate(0.0f,-1.1f,0.0f); 
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, HOUSE);
         DrawVirtualObject("house");
+
+        // Desenhamos a casa 2
+        model = Matrix_Translate(20.0f,-1.1f,0.0f)
+                * Matrix_Scale(0.05f, 0.05f, 0.05f);
+        glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+        glUniform1i(object_id_uniform, HOUSE2);
+        DrawVirtualObject("house2");
 
         // Pegamos um vértice com coordenadas de modelo (0.5, 0.5, 0.5, 1) e o
         // passamos por todos os sistemas de coordenadas armazenados nas
@@ -740,6 +779,7 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(program_id, "TextureImage2"), 2);
     glUniform1i(glGetUniformLocation(program_id, "TextureImage3"), 3);
     glUniform1i(glGetUniformLocation(program_id, "TextureImage4"), 4);
+    glUniform1i(glGetUniformLocation(program_id, "TextureImage5"), 5);
     glUseProgram(0);
 }
 
@@ -1302,6 +1342,17 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
         float shot_time = (float)glfwGetTime();
         TBullet new_bullet = { static_cast<int>(g_bullets.size()), GUN, "gun", g_camera_position_c, rotation, scale, direction, shot_time};
         g_bullets.push_back(new_bullet);
+
+        auto enemy_rot = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 enemy_scale = glm::vec3(ENEMY_SIZE, ENEMY_SIZE, ENEMY_SIZE);
+
+        float x_rand = random_int(-100,100)/100.0f;
+        float y_rand = random_int(-100,100)/100.0f;
+        float spawn_time = (float)glfwGetTime();
+
+        glm::vec4 direction_enemy = ENEMY_SPEED*(glm::vec4(x_rand,0.0f,y_rand,0.0f));
+        TEnemy new_enemy = { static_cast<int>(g_enemies.size()), FOX, "fox", glm::vec4(0.0f,-1.1f,0.0f,0.0f), enemy_rot, enemy_scale, direction_enemy, spawn_time};
+        g_enemies.push_back(new_enemy);
     }
 
     // Se o usuário apertar a tecla P, utilizamos projeção perspectiva.

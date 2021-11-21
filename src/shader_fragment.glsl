@@ -24,6 +24,7 @@ uniform mat4 projection;
 #define PLANE  2
 #define FOX    3
 #define HOUSE  4
+#define HOUSE2 5
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -199,6 +200,32 @@ void main()
 
         // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
         vec3 Kd0 = texture(TextureImage4, vec2(U,V)).rgb;
+
+        // Equação de Iluminação
+        float lambert = max(0, dot(n,l));
+        color = Kd0 * (lambert + 0.01);
+
+        // Cor final com correção gamma, considerando monitor sRGB.
+        // Veja https://en.wikipedia.org/w/index.php?title=Gamma_correction&oldid=751281772#Windows.2C_Mac.2C_sRGB_and_TV.2Fvideo_standard_gammas
+        color = pow(color, vec3(1.0,1.0,1.0)/2.2);
+    }
+    else if ( object_id == HOUSE2 )
+    {
+        float minx = bbox_min.x;
+        float maxx = bbox_max.x;
+
+        float miny = bbox_min.y;
+        float maxy = bbox_max.y;
+
+        float minz = bbox_min.z;
+        float maxz = bbox_max.z;
+
+        // Coordenadas de textura do plano, obtidas do arquivo OBJ.
+        U = texcoords.x;
+        V = texcoords.y;
+
+        // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
+        vec3 Kd0 = texture(TextureImage5, vec2(U,V)).rgb;
 
         // Equação de Iluminação
         float lambert = max(0, dot(n,l));
