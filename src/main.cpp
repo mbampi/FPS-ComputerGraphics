@@ -225,9 +225,9 @@ struct TBullet {
     float shot_time;  // hora em que o tiro foi dado para conseguirmos remover o tiro depois de um tempo
 };
 std::vector<struct TBullet> g_bullets; // Tiros em andamento
-const float BULLET_SIZE = 0.03f;
-const float BULLET_SPEED = 0.03f;
-const float MAX_BULLET_DISTANCE = 0.2f;
+const float BULLET_SIZE = 0.04f;
+const float BULLET_SPEED = 0.02f;
+const float MAX_BULLET_DISTANCE = 0.4f;
 
 // Enemy
 struct TEnemy {
@@ -242,8 +242,8 @@ struct TEnemy {
 };
 std::vector<struct TEnemy> g_enemies; // inimigos em andamento
 const float ENEMY_SIZE = 0.02f;
-const float ENEMY_SPEED = 0.002f;
-const float MAX_ENEMY_DISTANCE = 0.2f;
+const float ENEMY_SPEED = 0.001f;
+const float MAX_ENEMY_DISTANCE = 0.08f;
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 GLuint vertex_shader_id;
@@ -565,21 +565,6 @@ int main(int argc, char* argv[])
                 g_enemies.erase(enemy);
             i++;
         }
-
-        // Desenhamos o modelo da raposa
-        // g_enemy->position.x = (float)glfwGetTime() * -0.4f;
-        // model = Matrix_Translate(g_enemy->position.x,-1.0f,0.0f) 
-        //         * Matrix_Scale(g_enemy->scale.x, g_enemy->scale.y, g_enemy->scale.z);
-        // glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-        // glUniform1i(object_id_uniform, FOX);
-        // DrawVirtualObject("fox");
-
-        
-        // Desenhamos o modelo do coelho
-        model = Matrix_Translate((float)glfwGetTime() * 0.04f,0.1f,0.0f);
-        glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-        glUniform1i(object_id_uniform, BUNNY);
-        DrawVirtualObject("bunny");
 
         // Desenhamos o plano do chão
         model = Matrix_Translate(0.0f,-1.1f,0.0f) 
