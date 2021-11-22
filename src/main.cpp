@@ -178,7 +178,7 @@ float g_CameraDistance = INITIAL_CAMERA_DISTANCE; // Distância da câmera para 
 bool g_UsePerspectiveProjection = true;
 
 // Variável que controla se o texto informativo será mostrado na tela.
-bool g_ShowInfoText = true;
+bool g_ShowInfoText = false;
 
 glm::vec4 g_camera_view_vector;
 
