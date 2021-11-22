@@ -248,7 +248,7 @@ struct TBunny {
 std::vector<struct TBunny> g_bunny; // inimigos em andamento
 const float BUNNY_SIZE = 1.0;
 const float BUNNY_SPEED = 3.0f;
-const float MAX_BUNNY_DISTANCE = 50.0f;
+const float MAX_BUNNY_DISTANCE = 100.0f;
 
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
@@ -305,6 +305,23 @@ bool bulletCollidedBunny(glm::vec4 bullet, TBunny bunny){
     return collided;
 }
 
+/*
+bool EnemyCollidedBunny(glm::vec4 enemy, TBunny bunny){
+    const float PI = 3.14;
+    SceneObject bunny_obj = g_VirtualScene[bunny.model_name];
+    bool collided = false;
+    if ((bunny.rotation.y >= PI/4 && bunny.rotation.y <= 3*PI/4) || (bunny.rotation.y >= 3*-PI/4 && bunny.rotation.y <= -PI/4)) {
+        collided = (enemy.x >= (bunny_obj.bbox_min.z*bunny.scale.x) + bunny.position.x && enemy.x <= (bunny_obj.bbox_max.z*bunny.scale.x) + bunny.position.x)
+            && (enemy.y >= (bunny_obj.bbox_min.y*bunny.scale.y) + bunny.position.y && enemy.y <= (bunny_obj.bbox_max.y*bunny.scale.y) + bunny.position.y)
+            && (enemy.z >= (bunny_obj.bbox_min.x*bunny.scale.z) + bunny.position.z && enemy.z <= (bunny_obj.bbox_max.x*bunny.scale.z) + bunny.position.z);
+    } else {
+        collided = (enemy.x >= (bunny_obj.bbox_min.x*bunny.scale.x) + bunny.position.x && enemy.x < (bunny_obj.bbox_max.x*bunny.scale.x) + bunny.position.x)
+            && (enemy.y >= (bunny_obj.bbox_min.y*bunny.scale.y) + bunny.position.y && enemy.y <= (bunny_obj.bbox_max.y*bunny.scale.y) + bunny.position.y)
+            && (enemy.z >= (bunny_obj.bbox_min.z*bunny.scale.z) + bunny.position.z && enemy.z <= (bunny_obj.bbox_max.z*bunny.scale.z) + bunny.position.z);
+    }
+    return collided;
+}
+*/
 
 int main(int argc, char* argv[])
 {
@@ -536,6 +553,7 @@ int main(int argc, char* argv[])
         // desenhamos os tiros
         int i = 0;
         int j = 0;
+        int k = 0;
         for (auto bullet = g_bullets.begin(); i < g_bullets.size() && bullet != g_bullets.end(); bullet++) {
             bullet->position += (time_delta * bullet->direction);
             model = Matrix_Translate(bullet->position.x, bullet->position.y, bullet->position.z)
@@ -587,7 +605,7 @@ int main(int argc, char* argv[])
             glm::vec4 enemy_direction = ENEMY_SPEED*(glm::vec4(x_rand,0.0f,y_rand,0.0f));
             glm::vec3 enemy_rot = glm::vec3(0.0f, 0.0f, 0.0f);
             glm::vec3 enemy_scale = glm::vec3(ENEMY_SIZE, ENEMY_SIZE, ENEMY_SIZE);
-            TEnemy new_enemy = { static_cast<int>(g_enemies.size()), FOX, "fox", glm::vec4(0.0f,-1.1f,0.0f,0.0f), enemy_rot, enemy_scale, enemy_direction, spawn_time};
+            TEnemy new_enemy = { static_cast<int>(g_enemies.size()), FOX, "fox", glm::vec4(-24.0f,-1.1f,0.0f,0.0f), enemy_rot, enemy_scale, enemy_direction, spawn_time};
             g_enemies.push_back(new_enemy);
         }
 
@@ -606,6 +624,7 @@ int main(int argc, char* argv[])
 
         // desenhamos os inimigos
         i = 0;
+        k = 0;
         for (auto enemy = g_enemies.begin(); i < g_enemies.size() && enemy != g_enemies.end(); enemy++) {
             enemy->position += time_delta * enemy->direction;
             model = Matrix_Translate(enemy->position.x, enemy->position.y, enemy->position.z)
@@ -638,7 +657,6 @@ int main(int argc, char* argv[])
             DrawVirtualObject(bunny->model_name.c_str());
 
             float distance = norm((current_time - bunny->spawn_time) * bunny->direction);
-
             if (distance > MAX_BUNNY_DISTANCE)
                 g_bunny.erase(bunny);
             j++;
@@ -652,7 +670,7 @@ int main(int argc, char* argv[])
         DrawVirtualObject("plane");
 
         // Desenhamos a casa
-        model = Matrix_Translate(0.0f,-1.1f,0.0f);
+        model = Matrix_Translate(-20.0f,-1.1f,0.0f);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, HOUSE);
         DrawVirtualObject("house");
