@@ -8,7 +8,7 @@
 //                 TRABALHO FINAL
 //
 //      Matheus D. Bampi e Henrique Z. Vazatta
-//  
+//
 
 
 // Arquivos "headers" padrões de C podem ser incluídos em um
@@ -72,7 +72,7 @@ struct ObjModel
 
         if (!ret)
             throw std::runtime_error("Erro ao carregar modelo.");
-        
+
         printf("OK.\n");
     }
 };
@@ -235,6 +235,22 @@ const float ENEMY_SIZE = 0.02f;
 const float ENEMY_SPEED = 3.0f;
 const float MAX_ENEMY_DISTANCE = 100.0f;
 
+struct TBunny {
+    int id;
+    int model_id;
+    std::string model_name; // nome do modelo a ser desenhado
+    glm::vec4 position;
+    glm::vec3 rotation;
+    glm::vec3 scale;
+    glm::vec4 direction;    // direção da movimentação
+    float spawn_time; // hora em que o spawn foi feito para conseguirmos remover o inimigo depois de um tempo
+};
+std::vector<struct TBunny> g_bunny; // inimigos em andamento
+const float BUNNY_SIZE = 1.0;
+const float BUNNY_SPEED = 3.0f;
+const float MAX_BUNNY_DISTANCE = 50.0f;
+
+
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 GLuint vertex_shader_id;
 GLuint fragment_shader_id;
@@ -267,6 +283,24 @@ bool bulletCollidedEnemy(glm::vec4 bullet, TEnemy enemy){
         collided = (bullet.x > (enemy_obj.bbox_min.x*enemy.scale.x) + enemy.position.x && bullet.x < (enemy_obj.bbox_max.x*enemy.scale.x) + enemy.position.x)
             && (bullet.y > (enemy_obj.bbox_min.y*enemy.scale.y) + enemy.position.y && bullet.y < (enemy_obj.bbox_max.y*enemy.scale.y) + enemy.position.y)
             && (bullet.z > (enemy_obj.bbox_min.z*enemy.scale.z) + enemy.position.z && bullet.z < (enemy_obj.bbox_max.z*enemy.scale.z) + enemy.position.z);
+    }
+    return collided;
+}
+
+
+bool bulletCollidedBunny(glm::vec4 bullet, TBunny bunny){
+    const float PI = 3.14;
+    SceneObject bunny_obj = g_VirtualScene[bunny.model_name];
+    bool collided = false;
+
+    if ((bunny.rotation.y >= PI/4 && bunny.rotation.y <= 3*PI/4) || (bunny.rotation.y >= 3*-PI/4 && bunny.rotation.y <= -PI/4)) {
+        collided = (bullet.x > (bunny_obj.bbox_min.z*bunny.scale.x) + bunny.position.x && bullet.x < (bunny_obj.bbox_max.z*bunny.scale.x) + bunny.position.x)
+            && (bullet.y > (bunny_obj.bbox_min.y*bunny.scale.y) + bunny.position.y && bullet.y < (bunny_obj.bbox_max.y*bunny.scale.y) + bunny.position.y)
+            && (bullet.z > (bunny_obj.bbox_min.x*bunny.scale.z) + bunny.position.z && bullet.z < (bunny_obj.bbox_max.x*bunny.scale.z) + bunny.position.z);
+    } else {
+        collided = (bullet.x > (bunny_obj.bbox_min.x*bunny.scale.x) + bunny.position.x && bullet.x < (bunny_obj.bbox_max.x*bunny.scale.x) + bunny.position.x)
+            && (bullet.y > (bunny_obj.bbox_min.y*bunny.scale.y) + bunny.position.y && bullet.y < (bunny_obj.bbox_max.y*bunny.scale.y) + bunny.position.y)
+            && (bullet.z > (bunny_obj.bbox_min.z*bunny.scale.z) + bunny.position.z && bullet.z < (bunny_obj.bbox_max.z*bunny.scale.z) + bunny.position.z);
     }
     return collided;
 }
@@ -438,7 +472,7 @@ int main(int argc, char* argv[])
         // glm::vec4 g_camera_position_c = glm::vec4(x, y, z, 1.0f); // Ponto "c", centro da câmera
         // glm::vec4 camera_lookat_l    = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
         // glm::vec4 g_camera_view_vector = camera_lookat_l - g_camera_position_c; // Vetor "view", sentido para onde a câmera está virada
-        
+
         glm::vec4 walk_vector = glm::vec4(x,0.0f,z,0.0f);
         g_camera_view_vector = glm::vec4(x,y,z,0.0f);
         glm::vec4 camera_up_vector = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
@@ -501,6 +535,7 @@ int main(int argc, char* argv[])
 
         // desenhamos os tiros
         int i = 0;
+        int j = 0;
         for (auto bullet = g_bullets.begin(); i < g_bullets.size() && bullet != g_bullets.end(); bullet++) {
             bullet->position += (time_delta * bullet->direction);
             model = Matrix_Translate(bullet->position.x, bullet->position.y, bullet->position.z)
@@ -515,9 +550,9 @@ int main(int argc, char* argv[])
             float distance = norm((current_time - bullet->shot_time) * bullet->direction);
 
             int j = 0;
-            for (auto enemy = g_enemies.begin(); j < g_enemies.size() && enemy != g_enemies.end(); enemy++) { 
+            for (auto enemy = g_enemies.begin(); j < g_enemies.size() && enemy != g_enemies.end(); enemy++) {
                 bool collided_enemy = bulletCollidedEnemy(bullet->position, g_enemies[j]);
-                
+
                 if (collided_enemy) {
                     player->score += 1;
                     g_bullets.erase(bullet);
@@ -525,9 +560,21 @@ int main(int argc, char* argv[])
                 }
                 j++;
             }
+            int k = 0;
+
+            for (auto bunny = g_bunny.begin(); k < g_bunny.size() && bunny != g_bunny.end(); bunny++) {
+                bool collided_bunny = bulletCollidedBunny(bullet->position, g_bunny[k]);
+
+                if (collided_bunny) {
+                    player->score -= 1;
+                    g_bullets.erase(bullet);
+                    g_bunny.erase(bunny);
+                }
+                k++;
+            }
             if (distance > MAX_BULLET_DISTANCE)
                 g_bullets.erase(bullet);
-            
+
             i++;
         }
 
@@ -544,6 +591,19 @@ int main(int argc, char* argv[])
             g_enemies.push_back(new_enemy);
         }
 
+        // cria coelho
+        bool create_bunny = (random_int(0,200)==0);
+        if (create_bunny) {
+            float x_rand = random_int(-100,100)/100.0f;
+            float y_rand = random_int(-100,100)/100.0f;
+            float spawn_time = current_time;
+            glm::vec4 bunny_direction = BUNNY_SPEED*(glm::vec4(x_rand,0.0f,y_rand,0.0f));
+            glm::vec3 bunny_rot = glm::vec3(0.0f, 0.0f, 0.0f);
+            glm::vec3 bunny_scale = glm::vec3(BUNNY_SIZE, BUNNY_SIZE, BUNNY_SIZE);
+            TBunny new_bunny = { static_cast<int>(g_bunny.size()), BUNNY, "bunny", glm::vec4(24.0f,0.1f,0.0f,0.0f), bunny_rot, bunny_scale, bunny_direction, spawn_time};
+            g_bunny.push_back(new_bunny);
+        }
+
         // desenhamos os inimigos
         i = 0;
         for (auto enemy = g_enemies.begin(); i < g_enemies.size() && enemy != g_enemies.end(); enemy++) {
@@ -558,21 +618,41 @@ int main(int argc, char* argv[])
             DrawVirtualObject(enemy->model_name.c_str());
 
             float distance = norm((current_time - enemy->spawn_time) * enemy->direction);
-            
+
             if (distance > MAX_ENEMY_DISTANCE)
                 g_enemies.erase(enemy);
             i++;
         }
 
+        // desenhamos os coelhos
+        j = 0;
+        for (auto bunny = g_bunny.begin(); j < g_bunny.size() && bunny != g_bunny.end(); bunny++) {
+            bunny->position += time_delta * bunny->direction;
+            model = Matrix_Translate(bunny->position.x, bunny->position.y, bunny->position.z)
+                    * Matrix_Scale(bunny->scale.x, bunny->scale.y, bunny->scale.z)
+                    * Matrix_Rotate_Z(bunny->rotation.z)
+                    * Matrix_Rotate_Y(bunny->rotation.y)
+                    * Matrix_Rotate_X(bunny->rotation.x);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, bunny->model_id);
+            DrawVirtualObject(bunny->model_name.c_str());
+
+            float distance = norm((current_time - bunny->spawn_time) * bunny->direction);
+
+            if (distance > MAX_BUNNY_DISTANCE)
+                g_bunny.erase(bunny);
+            j++;
+        }
+
         // Desenhamos o plano do chão
-        model = Matrix_Translate(0.0f,-1.1f,0.0f) 
+        model = Matrix_Translate(0.0f,-1.1f,0.0f)
                 * Matrix_Scale(60.0f, 1.0f, 60.0f);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, PLANE);
         DrawVirtualObject("plane");
 
         // Desenhamos a casa
-        model = Matrix_Translate(0.0f,-1.1f,0.0f); 
+        model = Matrix_Translate(0.0f,-1.1f,0.0f);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, HOUSE);
         DrawVirtualObject("house");
@@ -1134,7 +1214,7 @@ GLuint CreateGpuProgram(GLuint vertex_shader_id, GLuint fragment_shader_id)
         fprintf(stderr, "%s", output.c_str());
     }
 
-    // Os "Shader Objects" podem ser marcados para deleção após serem linkados 
+    // Os "Shader Objects" podem ser marcados para deleção após serem linkados
     glDeleteShader(vertex_shader_id);
     glDeleteShader(fragment_shader_id);
 
@@ -1240,7 +1320,7 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 
     // Deixamos comentado para impedir a movimentação no eixo y.
     // isso faz com que fique mais facil jogar e que o player não voe ao se movimentar.
-    g_CameraPhi   += 0.01f*dy; 
+    g_CameraPhi   += 0.01f*dy;
 
     // Em coordenadas esféricas, o ângulo phi deve ficar entre -pi/2 e +pi/2.
     float phimax = 3.141592f/2;
@@ -1494,7 +1574,7 @@ void TextRendering_ShowFramesPerSecond(GLFWwindow* window)
     if ( ellapsed_seconds > 1.0f )
     {
         numchars = snprintf(buffer, 20, "%.2f fps", ellapsed_frames / ellapsed_seconds);
-    
+
         old_seconds = seconds;
         ellapsed_frames = 0;
     }
@@ -1509,9 +1589,9 @@ void TextRendering_ShowScore(GLFWwindow* window)
 {
     static char buffer[20] = "?? points";
     static int  numchars = 10;
-    
+
     numchars = snprintf(buffer, 20, "%d points", player->score);
-    
+
     float lineheight = TextRendering_LineHeight(window);
     float charwidth = TextRendering_CharWidth(window);
     TextRendering_PrintString(window, buffer, 1.0f-(numchars + 1)*charwidth, 1.0f-lineheight, 1.0f);
