@@ -293,7 +293,7 @@ int main(int argc, char* argv[])
         std::exit(EXIT_FAILURE);
     }
 
-    srand(time(0));
+    srand(glfwGetTime());
 
     // Definimos o callback para impressão de erros da GLFW no terminal
     glfwSetErrorCallback(ErrorCallback);
@@ -581,7 +581,7 @@ int main(int argc, char* argv[])
 
         // Desenhamos o plano do chão
         model = Matrix_Translate(0.0f,-1.1f,0.0f) 
-                * Matrix_Scale(50.0f, 1.0f, 50.0f);
+                * Matrix_Scale(60.0f, 1.0f, 60.0f);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, PLANE);
         DrawVirtualObject("plane");
