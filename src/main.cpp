@@ -546,6 +546,19 @@ int main(int argc, char* argv[])
             i++;
         }
 
+        // cria inimigo
+        bool create_enemy = (random_int(0,200)==0);
+        if (create_enemy) {
+            float x_rand = random_int(-100,100)/100.0f;
+            float y_rand = random_int(-100,100)/100.0f;
+            float spawn_time = (float)glfwGetTime();
+            glm::vec4 enemy_direction = ENEMY_SPEED*(glm::vec4(x_rand,0.0f,y_rand,0.0f));
+            glm::vec3 enemy_rot = glm::vec3(0.0f, 0.0f, 0.0f);
+            glm::vec3 enemy_scale = glm::vec3(ENEMY_SIZE, ENEMY_SIZE, ENEMY_SIZE);
+            TEnemy new_enemy = { static_cast<int>(g_enemies.size()), FOX, "fox", glm::vec4(0.0f,-1.1f,0.0f,0.0f), enemy_rot, enemy_scale, enemy_direction, spawn_time};
+            g_enemies.push_back(new_enemy);
+        }
+
         // desenhamos os inimigos
         i = 0;
         for (auto enemy = g_enemies.begin(); i < g_enemies.size() && enemy != g_enemies.end(); enemy++) {
@@ -1327,17 +1340,6 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
         float shot_time = (float)glfwGetTime();
         TBullet new_bullet = { static_cast<int>(g_bullets.size()), GUN, "gun", g_camera_position_c, rotation, scale, direction, shot_time};
         g_bullets.push_back(new_bullet);
-
-        auto enemy_rot = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 enemy_scale = glm::vec3(ENEMY_SIZE, ENEMY_SIZE, ENEMY_SIZE);
-
-        float x_rand = random_int(-100,100)/100.0f;
-        float y_rand = random_int(-100,100)/100.0f;
-        float spawn_time = (float)glfwGetTime();
-
-        glm::vec4 direction_enemy = ENEMY_SPEED*(glm::vec4(x_rand,0.0f,y_rand,0.0f));
-        TEnemy new_enemy = { static_cast<int>(g_enemies.size()), FOX, "fox", glm::vec4(0.0f,-1.1f,0.0f,0.0f), enemy_rot, enemy_scale, direction_enemy, spawn_time};
-        g_enemies.push_back(new_enemy);
     }
 
     // Se o usuário apertar a tecla P, utilizamos projeção perspectiva.
