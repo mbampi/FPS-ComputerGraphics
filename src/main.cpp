@@ -305,23 +305,33 @@ bool bulletCollidedBunny(glm::vec4 bullet, TBunny bunny){
     return collided;
 }
 
-/*
-bool EnemyCollidedBunny(glm::vec4 enemy, TBunny bunny){
+
+bool EnemyCollidedBunny(TEnemy enemy, TBunny bunny){
     const float PI = 3.14;
-    SceneObject bunny_obj = g_VirtualScene[bunny.model_name];
     bool collided = false;
+
+    SceneObject bunny_obj = g_VirtualScene[bunny.model_name];
+    SceneObject enemy_obj = g_VirtualScene[enemy.model_name];
+    
     if ((bunny.rotation.y >= PI/4 && bunny.rotation.y <= 3*PI/4) || (bunny.rotation.y >= 3*-PI/4 && bunny.rotation.y <= -PI/4)) {
-        collided = (enemy.x >= (bunny_obj.bbox_min.z*bunny.scale.x) + bunny.position.x && enemy.x <= (bunny_obj.bbox_max.z*bunny.scale.x) + bunny.position.x)
-            && (enemy.y >= (bunny_obj.bbox_min.y*bunny.scale.y) + bunny.position.y && enemy.y <= (bunny_obj.bbox_max.y*bunny.scale.y) + bunny.position.y)
-            && (enemy.z >= (bunny_obj.bbox_min.x*bunny.scale.z) + bunny.position.z && enemy.z <= (bunny_obj.bbox_max.x*bunny.scale.z) + bunny.position.z);
+        collided = ((bunny_obj.bbox_min.z*bunny.scale.x) + bunny.position.x <= (enemy_obj.bbox_max.x*enemy.scale.x) + enemy.position.x
+                && (bunny_obj.bbox_max.z*bunny.scale.x) + bunny.position.x >= (enemy_obj.bbox_min.x*enemy.scale.x) + enemy.position.x)
+                &&((bunny_obj.bbox_min.y*bunny.scale.y) + bunny.position.y <= (enemy_obj.bbox_max.y*enemy.scale.y) + enemy.position.y
+                && (bunny_obj.bbox_max.y*bunny.scale.y) + bunny.position.y >= (enemy_obj.bbox_min.y*enemy.scale.y) + enemy.position.y)
+                &&((bunny_obj.bbox_min.x*bunny.scale.z) + bunny.position.z <= (enemy_obj.bbox_max.z*enemy.scale.z) + enemy.position.z
+                && (bunny_obj.bbox_max.x*bunny.scale.z) + bunny.position.z >= (enemy_obj.bbox_min.z*enemy.scale.z) + enemy.position.z);
+    
     } else {
-        collided = (enemy.x >= (bunny_obj.bbox_min.x*bunny.scale.x) + bunny.position.x && enemy.x < (bunny_obj.bbox_max.x*bunny.scale.x) + bunny.position.x)
-            && (enemy.y >= (bunny_obj.bbox_min.y*bunny.scale.y) + bunny.position.y && enemy.y <= (bunny_obj.bbox_max.y*bunny.scale.y) + bunny.position.y)
-            && (enemy.z >= (bunny_obj.bbox_min.z*bunny.scale.z) + bunny.position.z && enemy.z <= (bunny_obj.bbox_max.z*bunny.scale.z) + bunny.position.z);
+        collided = ((bunny_obj.bbox_min.x*bunny.scale.x) + bunny.position.x <= (enemy_obj.bbox_max.x*enemy.scale.x) + enemy.position.x
+             && (bunny_obj.bbox_max.x*bunny.scale.x) + bunny.position.x >= (enemy_obj.bbox_min.x*enemy.scale.x) + enemy.position.x)
+             && ((bunny_obj.bbox_min.y*bunny.scale.y) + bunny.position.y <= (enemy_obj.bbox_max.y*enemy.scale.y) + enemy.position.y
+             && (bunny_obj.bbox_max.y*bunny.scale.y) + bunny.position.y >= (enemy_obj.bbox_min.y*enemy.scale.y) + enemy.position.y)
+             && ((bunny_obj.bbox_min.z*bunny.scale.z) + bunny.position.z <= (enemy_obj.bbox_max.z*enemy.scale.z) + enemy.position.z
+             && (bunny_obj.bbox_max.z*bunny.scale.z) + bunny.position.z >= (enemy_obj.bbox_min.z*enemy.scale.z) + enemy.position.z);
     }
     return collided;
 }
-*/
+
 
 int main(int argc, char* argv[])
 {
@@ -635,6 +645,18 @@ int main(int argc, char* argv[])
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, enemy->model_id);
             DrawVirtualObject(enemy->model_name.c_str());
+
+            j = 0;
+            for (auto bunny = g_bunny.begin(); j < g_bunny.size() && bunny != g_bunny.end(); bunny++) {
+                bool collided_bunny = EnemyCollidedBunny(*enemy, g_bunny[j]);
+
+                if (collided_bunny) { // fox e bunny colidiram
+                    player->score -= 1;
+                    g_bunny.erase(bunny);
+                    g_enemies.erase(enemy);
+                }
+                j++;
+            }
 
             float distance = norm((current_time - enemy->spawn_time) * enemy->direction);
 
