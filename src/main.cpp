@@ -187,28 +187,20 @@ glm::vec4 g_camera_view_vector;
 #define HOUSE 4
 #define HOUSE2 5
 
+double last_frame_update_time = glfwGetTime();
+
 // Player
 struct TPlayer {
-    int model_id;
-    std::string model_name; // nome do modelo a ser desenhado
-    glm::vec4 position;
-    glm::vec3 rotation;
-    glm::vec3 scale;
     int score;
 
     TPlayer() {
-        model_id = BUNNY;
-        model_name = "bunny";
-        position = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-        rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-        scale = glm::vec3(0.5f, 0.5f, 0.5f);
         score = 0;
     };
 };
 glm::vec4 g_camera_position_c = glm::vec4(0.0f, 0.0f, -2.0f, 1.0f);
 bool g_go_front, g_go_back, g_go_left, g_go_right;
 bool g_rotate_right, g_rotate_left;
-const float PLAYER_SPEED = 0.15;
+const float PLAYER_SPEED = 10;
 TPlayer *player = new TPlayer();
 
 // Tiro
@@ -224,8 +216,8 @@ struct TBullet {
 };
 std::vector<struct TBullet> g_bullets; // Tiros em andamento
 const float BULLET_SIZE = 0.04f;
-const float BULLET_SPEED = 0.02f;
-const float MAX_BULLET_DISTANCE = 0.4f;
+const float BULLET_SPEED = 25.0f;
+const float MAX_BULLET_DISTANCE = 200.0f;
 
 // Enemy
 struct TEnemy {
@@ -240,8 +232,8 @@ struct TEnemy {
 };
 std::vector<struct TEnemy> g_enemies; // inimigos em andamento
 const float ENEMY_SIZE = 0.02f;
-const float ENEMY_SPEED = 0.001f;
-const float MAX_ENEMY_DISTANCE = 0.08f;
+const float ENEMY_SPEED = 3.0f;
+const float MAX_ENEMY_DISTANCE = 100.0f;
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 GLuint vertex_shader_id;
@@ -454,13 +446,17 @@ int main(int argc, char* argv[])
         glm::vec4 w = -walk_vector/norm(walk_vector);
         glm::vec4 u = crossproduct(camera_up_vector, w)/norm(crossproduct(camera_up_vector, w));
 
-        if (g_go_front) g_camera_position_c -= PLAYER_SPEED * w;
-        if (g_go_back)  g_camera_position_c += PLAYER_SPEED * w;
-        if (g_go_left)  g_camera_position_c -= PLAYER_SPEED * u;
-        if (g_go_right) g_camera_position_c += PLAYER_SPEED * u;
+        float current_time = (float)(glfwGetTime());
+        float time_delta = current_time - last_frame_update_time;
+        last_frame_update_time = current_time;
 
-        if (g_rotate_right) g_CameraTheta -= PLAYER_SPEED * 0.5f;
-        if (g_rotate_left)  g_CameraTheta += PLAYER_SPEED * 0.5f;
+        if (g_go_front) g_camera_position_c -= time_delta * PLAYER_SPEED * w;
+        if (g_go_back)  g_camera_position_c += time_delta * PLAYER_SPEED * w;
+        if (g_go_left)  g_camera_position_c -= time_delta * PLAYER_SPEED * u;
+        if (g_go_right) g_camera_position_c += time_delta * PLAYER_SPEED * u;
+
+        if (g_rotate_right) g_CameraTheta -= time_delta * PLAYER_SPEED * 0.4f;
+        if (g_rotate_left)  g_CameraTheta += time_delta * PLAYER_SPEED * 0.4f;
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
@@ -503,19 +499,10 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
         glUniformMatrix4fv(projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
-        // Desenhamos o modelo da arma
-        // float _x = g_camera_position_c.x + g_camera_view_vector.x;    
-        // float _y = g_camera_position_c.y + g_camera_view_vector.y;
-        // float _z = g_camera_position_c.z + g_camera_view_vector.z;
-        // model = Matrix_Translate(_x, _y, _z) * Matrix_Scale(0.01f, 0.01f, 0.01f);
-        // glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-        // glUniform1i(object_id_uniform, GUN);
-        // DrawVirtualObject("gun");
-
         // desenhamos os tiros
         int i = 0;
         for (auto bullet = g_bullets.begin(); i < g_bullets.size() && bullet != g_bullets.end(); bullet++) {
-            bullet->position += (float)glfwGetTime() * bullet->direction;
+            bullet->position += (time_delta * bullet->direction);
             model = Matrix_Translate(bullet->position.x, bullet->position.y, bullet->position.z)
                     * Matrix_Scale(bullet->scale.x, bullet->scale.y, bullet->scale.z)
                     * Matrix_Rotate_Z(bullet->rotation.z)
@@ -525,7 +512,7 @@ int main(int argc, char* argv[])
             glUniform1i(object_id_uniform, bullet->model_id);
             DrawVirtualObject(bullet->model_name.c_str());
 
-            float distance = norm(((float)glfwGetTime() - bullet->shot_time) * bullet->direction);
+            float distance = norm((current_time - bullet->shot_time) * bullet->direction);
 
             int j = 0;
             for (auto enemy = g_enemies.begin(); j < g_enemies.size() && enemy != g_enemies.end(); enemy++) { 
@@ -549,7 +536,7 @@ int main(int argc, char* argv[])
         if (create_enemy) {
             float x_rand = random_int(-100,100)/100.0f;
             float y_rand = random_int(-100,100)/100.0f;
-            float spawn_time = (float)glfwGetTime();
+            float spawn_time = current_time;
             glm::vec4 enemy_direction = ENEMY_SPEED*(glm::vec4(x_rand,0.0f,y_rand,0.0f));
             glm::vec3 enemy_rot = glm::vec3(0.0f, 0.0f, 0.0f);
             glm::vec3 enemy_scale = glm::vec3(ENEMY_SIZE, ENEMY_SIZE, ENEMY_SIZE);
@@ -560,7 +547,7 @@ int main(int argc, char* argv[])
         // desenhamos os inimigos
         i = 0;
         for (auto enemy = g_enemies.begin(); i < g_enemies.size() && enemy != g_enemies.end(); enemy++) {
-            enemy->position += (float)glfwGetTime() * enemy->direction;
+            enemy->position += time_delta * enemy->direction;
             model = Matrix_Translate(enemy->position.x, enemy->position.y, enemy->position.z)
                     * Matrix_Scale(enemy->scale.x, enemy->scale.y, enemy->scale.z)
                     * Matrix_Rotate_Z(enemy->rotation.z)
@@ -570,7 +557,7 @@ int main(int argc, char* argv[])
             glUniform1i(object_id_uniform, enemy->model_id);
             DrawVirtualObject(enemy->model_name.c_str());
 
-            float distance = norm(((float)glfwGetTime() - enemy->spawn_time) * enemy->direction);
+            float distance = norm((current_time - enemy->spawn_time) * enemy->direction);
             
             if (distance > MAX_ENEMY_DISTANCE)
                 g_enemies.erase(enemy);
