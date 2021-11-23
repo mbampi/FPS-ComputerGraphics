@@ -200,7 +200,7 @@ struct TPlayer {
 glm::vec4 g_camera_position_c = glm::vec4(0.0f, 0.0f, -2.0f, 1.0f);
 bool g_go_front, g_go_back, g_go_left, g_go_right;
 bool g_rotate_right, g_rotate_left;
-const float PLAYER_SPEED = 10;
+const float PLAYER_SPEED = 8;
 TPlayer *player = new TPlayer();
 
 // Tiro
@@ -233,7 +233,7 @@ struct TEnemy {
 std::vector<struct TEnemy> g_enemies; // inimigos em andamento
 const float ENEMY_SIZE = 0.02f;
 const float ENEMY_SPEED = 3.0f;
-const float MAX_ENEMY_DISTANCE = 100.0f;
+const float MAX_ENEMY_DISTANCE = 80.0f;
 
 struct TBunny {
     int id;
@@ -248,7 +248,7 @@ struct TBunny {
 std::vector<struct TBunny> g_bunny; // inimigos em andamento
 const float BUNNY_SIZE = 1.0;
 const float BUNNY_SPEED = 3.0f;
-const float MAX_BUNNY_DISTANCE = 100.0f;
+const float MAX_BUNNY_DISTANCE = 80.0f;
 
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
@@ -516,8 +516,8 @@ int main(int argc, char* argv[])
         if (g_go_left)  g_camera_position_c -= time_delta * PLAYER_SPEED * u;
         if (g_go_right) g_camera_position_c += time_delta * PLAYER_SPEED * u;
 
-        if (g_rotate_right) g_CameraTheta -= time_delta * PLAYER_SPEED * 0.4f;
-        if (g_rotate_left)  g_CameraTheta += time_delta * PLAYER_SPEED * 0.4f;
+        if (g_rotate_right) g_CameraTheta -= time_delta * PLAYER_SPEED * 0.3f;
+        if (g_rotate_left)  g_CameraTheta += time_delta * PLAYER_SPEED * 0.3f;
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
@@ -607,7 +607,7 @@ int main(int argc, char* argv[])
         }
 
         // cria inimigo
-        bool create_enemy = (random_int(0,200)==0);
+        bool create_enemy = (random_int(0,210)==0);
         if (create_enemy) {
             float x_rand = random_int(-100,100)/100.0f;
             float y_rand = random_int(-100,100)/100.0f;
@@ -620,7 +620,7 @@ int main(int argc, char* argv[])
         }
 
         // cria coelho
-        bool create_bunny = (random_int(0,200)==0);
+        bool create_bunny = (random_int(0,300)==0);
         if (create_bunny) {
             float x_rand = random_int(-100,100)/100.0f;
             float y_rand = random_int(-100,100)/100.0f;
@@ -628,7 +628,7 @@ int main(int argc, char* argv[])
             glm::vec4 bunny_direction = BUNNY_SPEED*(glm::vec4(x_rand,0.0f,y_rand,0.0f));
             glm::vec3 bunny_rot = glm::vec3(0.0f, 0.0f, 0.0f);
             glm::vec3 bunny_scale = glm::vec3(BUNNY_SIZE, BUNNY_SIZE, BUNNY_SIZE);
-            TBunny new_bunny = { static_cast<int>(g_bunny.size()), BUNNY, "bunny", glm::vec4(24.0f,0.1f,0.0f,0.0f), bunny_rot, bunny_scale, bunny_direction, spawn_time};
+            TBunny new_bunny = { static_cast<int>(g_bunny.size()), BUNNY, "bunny", glm::vec4(24.0f,0.0f,0.0f,0.0f), bunny_rot, bunny_scale, bunny_direction, spawn_time};
             g_bunny.push_back(new_bunny);
         }
 
